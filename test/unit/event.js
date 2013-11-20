@@ -2374,6 +2374,52 @@ test("fixHooks extensions", function() {
 	jQuery.event.fixHooks.click = saved;
 });
 
+test( "focusin using non-element targets", function() {
+	expect( 2 );
+
+	jQuery( document ).on( "focusin", function( e ) {
+		ok( e.type === "focusin", "got a focusin event on a document" );
+	}).trigger( "focusin" ).off( "focusin" );
+
+	jQuery( window ).on( "focusin", function( e ) {
+		ok( e.type === "focusin", "got a focusin event on a window" );
+	}).trigger( "focusin" ).off( "focusin" );
+
+});
+
+testIframeWithCallback( "focusin from an iframe", "event/focusinCrossFrame.html", function( frameDoc ) {
+	expect(1);
+
+	var input = jQuery( frameDoc ).find( "#frame-input" );
+
+	if ( input.length ) {
+		// Create a focusin handler on the parent; shouldn't affect the iframe's fate
+		jQuery ( "body" ).on( "focusin.iframeTest", function() {
+			ok( false, "fired a focusin event in the parent document" );
+		});
+
+		input.on( "focusin", function() {
+			ok( true, "fired a focusin event in the iframe" );
+		});
+
+		// Avoid a native event; Chrome can't force focus to another frame
+		input.trigger( "focusin" );
+
+		// Must manually remove handler to avoid leaks in our data store
+		input.remove();
+
+		// Be sure it was removed; nothing should happen
+		input.trigger( "focusin" );
+
+		// Remove body handler manually since it's outside the fixture
+		jQuery( "body" ).off( "focusin.iframeTest" );
+
+	} else {
+		// Opera 12 (pre-Blink) doesn't select anything
+		ok( true, "SOFTFAIL: no focus event fired in the iframe" );
+	}
+});
+
 testIframeWithCallback( "jQuery.ready promise", "event/promiseReady.html", function( isOk ) {
 	expect(1);
 	ok( isOk, "$.when( $.ready ) works" );
